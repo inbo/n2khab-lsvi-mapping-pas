@@ -51,6 +51,7 @@ library(forcats)
 library(lubridate)
 library(git2rdata)
 library(sf)
+library(terra)
 library(n2khab)
 source(file.path(projroot, "R/functions.R"))
 opts_chunk$set(
@@ -68,3 +69,236 @@ our_scroll_kbl <- function(df, width = NULL, height = NULL) {
     scroll_box(width = width, height = height)
 }
 ```
+
+## Settings and basic objects
+
+Defining the regular expression for forest types.
+
+```{r}
+forest_types_regex <- "^9|^2180|^rbbppm"
+```
+
+Setting the theoretical first year of the first monitoring cycle as defined for reporting, i.e. taking into account the required alignment of monitoring cycles with reporting years.
+
+```{r}
+year_origin <- 2024L
+```
+
+Reading the reference checksum values.
+
+```{r}
+n2khab_data_checksums_reference <-
+  read_vc(
+    file = "n2khab_data_checksums_reference",
+    root = file.path(datapath, "text/raw")
+  ) %>%
+  as_tibble()
+```
+
+Defining the data source versions to be used in this workflow.
+
+```{r}
+versions_required <- c(
+  sac = "sac_2013-01-18",
+  habitatmap_terr = "habitatmap_terr_2025_v99_interim",
+  GRTSmh_diffres = "GRTSmh_diffres_v1"
+)
+stopifnot(all(
+  versions_required %in% unique(n2khab_data_checksums_reference$version_id)
+))
+```
+
+Checking the existence of the correct files in the correct directories.
+
+```{r}
+verify_n2khab_data(n2khab_data_checksums_reference, versions_required)
+```
+
+Defining domains, including their geometry.
+
+```{r}
+sac <- read_admin_areas(dsn = "sac")
+sac_subset_5 <- c(
+  "BE2100015", # Kalmthoutse Heide
+  "BE2100024", # Vennen, heiden en moerassen rond Turnhout
+  "BE2200028", # De Maten
+  "BE2200035", # Mechelse heide en vallei van de Ziepbeek
+  "BE2200039" # Voerstreek
+)
+for (sac_i in sac_subset_5) {
+  sac %>%
+    filter(sac_code == sac_i) %>%
+    st_combine() %>%
+    .[[1]] %>%
+    assign(str_c("sfg_", tolower(sac_i)), ., envir = .GlobalEnv)
+}
+domains <- tribble(
+  ~domain, ~domain_name_nl, ~domain_name_en, ~geometry,
+  "BE2100015", "SBZ-H BE2100015", "SAC BE2100015", sfg_be2100015,
+  "BE2100024", "SBZ-H BE2100024", "SAC BE2100024", sfg_be2100024,
+  "BE2200028", "SBZ-H BE2200028", "SAC BE2200028", sfg_be2200028,
+  "BE2200035", "SBZ-H BE2200035", "SAC BE2200035", sfg_be2200035,
+  "BE2200039", "SBZ-H BE2200039", "SAC BE2200039", sfg_be2200039
+) %>%
+  mutate(across(where(is.character), fct)) %>%
+  st_as_sf(crs = 31370)
+domains
+```
+
+Reading spatial data of terrestrial types.
+
+```{r}
+hmt <- read_habitatmap_terr(
+  keep_aq_types = FALSE,
+  drop_7220 = FALSE,
+  version = versions_required["habitatmap_terr"]
+)
+```
+
+Reading GRTS raster cells at two specific resolutions.
+
+```{r}
+main_level <- 4
+cells <- read_GRTSmh_diffres(level = main_level)
+subcells <- read_GRTSmh_diffres(level = main_level - 1)
+```
+
+## Subsetting objects
+
+Only polygons with a terrestrial _habitat_ type are retained.
+We also mark which polygons contain at least one 'open type' (as opposed to 'forest type').
+
+```{r}
+hmt_occ_hab <- 
+  hmt$habitatmap_terr_types %>%
+  filter(!str_detect(type, "^rbb")) %>% 
+  mutate(
+    polygon_has_open_type = !any(str_detect(type, forest_types_regex)),
+    .by = polygon_id
+  )
+hmt_pol_hab <- 
+  hmt$habitatmap_terr_polygons %>% 
+  inner_join(
+    hmt_occ_hab %>%
+      distinct(
+        polygon_id,
+        has_open_type = polygon_has_open_type
+      ),
+    join_by(polygon_id),
+    relationship = "one-to-one",
+    unmatched = c("drop", "error")
+  ) %>% 
+  select(polygon_id, description_orig, has_open_type)
+```
+
+Spatially subsetting habitat polygons according to domains (five SACs with custom measures).
+
+```{r}
+hmt_pol_hab_sacsubset <- hmt_pol_hab[domains, ]
+```
+
+Spatially subsetting cells and subcells according to domains.
+We also include the cell address in the subcells object.
+
+```{r}
+cells_sacsubset <-
+  cells[vect(domains), , drop = FALSE] %>% 
+  as.polygons(round = FALSE, aggregate = FALSE) %>% 
+  st_as_sf() %>% 
+  as_tibble() %>% 
+  rename(cell_address = 1) %>% 
+  mutate(cell_address = as.integer(cell_address)) %>% 
+  st_as_sf()
+subcells_sacsubset <-
+  subcells[vect(domains), , drop = FALSE] %>% 
+  as.polygons(round = FALSE, aggregate = FALSE) %>% 
+  st_as_sf() %>% 
+  as_tibble() %>% 
+  rename(subcell_address = 1) %>% 
+  mutate(subcell_address = as.integer(subcell_address)) %>% 
+  st_as_sf() %>% 
+  st_join(cells_sacsubset, join = st_within, left = FALSE) %>% 
+  relocate(geometry, .after = last_col())
+```
+
+Visualizing domains, cells and subcells.
+
+```{r}
+mvmap <- 
+  mapview::mapview(domains, map.types = "CartoDB.Positron") +
+  cells_sacsubset +
+  subcells_sacsubset
+mvmap@map %>% 
+  inbospatial::add_wms_be_cartoweb("topo_grey")
+```
+
+## Habitat polygons with (sub)cell attribute
+
+To join subcell and cell addresses to the habitat polygons, we need the centroids of the habitat polygons.
+
+```{r}
+hmt_pol_hab_sacsubset_centroid <- 
+  st_intersection(
+    hmt_pol_hab %>% st_sf(agr = "identity"),
+    domains %>% st_geometry()
+  ) %>% 
+  st_sf(agr = "identity") %>% 
+  st_centroid()
+```
+
+```{r}
+#| eval: false
+#| include: false
+cells_sacsubset_hmt <-
+  cells_sacsubset[hmt_pol_hab_sacsubset_centroid, ]
+# all subcells belonging to cells_sacsubset_hmt
+subcells_sacsubset_hmt <-
+  subcells_sacsubset %>% 
+  semi_join(
+    cells_sacsubset_hmt %>% st_drop_geometry(),
+    join_by(cell_address)
+  )
+```
+
+```{r}
+#| eval: false
+#| include: false
+mapview::mapview(domains) + cells_sacsubset_hmt + subcells_sacsubset_hmt + hmt_pol_hab_sacsubset_centroid
+```
+
+Joining subcell and cell addresses to the habitat polygons.
+
+```{r}
+hmt_pol_hab_sacsubset_subcell <- 
+  hmt_pol_hab_sacsubset_centroid %>% 
+  st_join(subcells_sacsubset, left = FALSE) %>% 
+  st_drop_geometry() %>% 
+  inner_join(
+    hmt_pol_hab_sacsubset,
+    .,
+    join_by(polygon_id, description_orig, has_open_type),
+    relationship = "one-to-one",
+    unmatched = "error"
+  ) %>% 
+  relocate(geom, .after = last_col())
+```
+
+Inspect result:
+
+```{r}
+#| echo: false
+#| paged.print: false
+hmt_pol_hab_sacsubset_subcell
+```
+
+
+<!-- Plan: -->
+
+<!-- distribute cells over 6 panels for open types -->
+<!-- distribute (member) subcells over 12 (sub)panels for forest types -->
+
+<!-- assign panels to years -->
+
+<!-- generate 3 layers with the year attribute: cells, subcells, polygons -->
+
+## Writing to GeoPackage
