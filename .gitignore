@@ -1,0 +1,15 @@
+.Rproj.user
+.Rhistory
+.RData
+.httr-oauth
+.DS_Store
+.quarto
+*.md
+!README.md
+!NEWS.md
+!LICENSE.md
+*.gpkg
+*.html
+!header.html
+!header_qmd.html
+*_files/
