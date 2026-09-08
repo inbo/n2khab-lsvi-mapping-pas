@@ -173,7 +173,7 @@ hmt_occ_hab <-
   hmt$habitatmap_terr_types %>%
   filter(!str_detect(type, "^rbb")) %>% 
   mutate(
-    polygon_has_open_type = !any(str_detect(type, forest_types_regex)),
+    polygon_has_open_type = !all(str_detect(type, forest_types_regex)),
     .by = polygon_id
   )
 hmt_pol_hab <- 
