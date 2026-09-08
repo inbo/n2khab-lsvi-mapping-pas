@@ -191,13 +191,21 @@ hmt_pol_hab <-
   select(polygon_id, description_orig, has_open_type)
 ```
 
-Spatially subsetting habitat polygons according to domains (five SACs with custom measures).
+Spatially subsetting habitat polygons according to domains (five SACs with custom measures), i.e. all habitat polygons are retained that intersect the domains.
 
 ```{r}
 hmt_pol_hab_sacsubset <- hmt_pol_hab[domains, ]
 ```
 
+Inspecting result:
+
+```{r}
+#| paged.print: false
+hmt_pol_hab_sacsubset
+```
+
 Spatially subsetting cells and subcells according to domains.
+The (sub)cells are retained when they overlap the domain (the cell center does not have to overlap the domain).
 We also include the cell address in the subcells object.
 
 ```{r}
@@ -221,6 +229,13 @@ subcells_sacsubset <-
   relocate(geometry, .after = last_col())
 ```
 
+Inspecting `subcells_sacsubset`:
+
+```{r}
+#| paged.print: false
+subcells_sacsubset
+```
+
 Visualizing domains, cells and subcells.
 
 ```{r}
@@ -234,7 +249,9 @@ mvmap@map %>%
 
 ## Habitat polygons with (sub)cell attribute
 
-To join subcell and cell addresses to the habitat polygons, we need the centroids of the habitat polygons.
+To join subcell and cell addresses to the habitat polygons in a one-to-one way, we will use the centroids of the habitat polygons.
+
+First creating these centroids.
 
 ```{r}
 hmt_pol_hab_sacsubset_centroid <- 
@@ -283,10 +300,9 @@ hmt_pol_hab_sacsubset_subcell <-
   relocate(geom, .after = last_col())
 ```
 
-Inspect result:
+Inspecting result:
 
 ```{r}
-#| echo: false
 #| paged.print: false
 hmt_pol_hab_sacsubset_subcell
 ```
