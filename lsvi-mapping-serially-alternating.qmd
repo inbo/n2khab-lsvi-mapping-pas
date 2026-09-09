@@ -261,11 +261,15 @@ First creating these centroids.
 ```{r}
 hmt_pol_hab_sacsubset_centroid <- 
   st_intersection(
-    hmt_pol_hab %>% st_sf(agr = "identity"),
+    hmt_pol_hab_sacsubset %>% st_sf(agr = "identity"),
     domains %>% st_geometry()
   ) %>% 
   st_sf(agr = "identity") %>% 
   st_centroid()
+```
+
+```{r}
+stopifnot(nrow(hmt_pol_hab_sacsubset) == nrow(hmt_pol_hab_sacsubset_centroid))
 ```
 
 ```{r}
