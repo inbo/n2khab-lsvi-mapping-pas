@@ -204,6 +204,10 @@ Inspecting result:
 hmt_pol_hab_sacsubset
 ```
 
+```{r}
+table(hmt_pol_hab_sacsubset$has_open_type)
+```
+
 Spatially subsetting cells and subcells according to domains.
 The (sub)cells are retained when they overlap the domain (the cell center does not have to overlap the domain).
 We also include the cell address in the subcells object.
@@ -226,6 +230,7 @@ subcells_sacsubset <-
   mutate(subcell_address = as.integer(subcell_address)) %>% 
   st_as_sf() %>% 
   st_join(cells_sacsubset, join = st_within, left = FALSE) %>% 
+  arrange(cell_address, subcell_address) %>% 
   relocate(geometry, .after = last_col())
 ```
 
@@ -264,23 +269,28 @@ hmt_pol_hab_sacsubset_centroid <-
 ```
 
 ```{r}
-#| eval: false
 #| include: false
-cells_sacsubset_hmt <-
-  cells_sacsubset[hmt_pol_hab_sacsubset_centroid, ]
-# all subcells belonging to cells_sacsubset_hmt
-subcells_sacsubset_hmt <-
-  subcells_sacsubset %>% 
-  semi_join(
-    cells_sacsubset_hmt %>% st_drop_geometry(),
-    join_by(cell_address)
-  )
+if (FALSE) {
+  cells_sacsubset_hmt <-
+    cells_sacsubset[hmt_pol_hab_sacsubset_centroid, ]
+  # all subcells belonging to cells_sacsubset_hmt
+  subcells_sacsubset_hmt <-
+    subcells_sacsubset %>% 
+    semi_join(
+      cells_sacsubset_hmt %>% st_drop_geometry(),
+      join_by(cell_address)
+    )
+}
 ```
 
 ```{r}
-#| eval: false
 #| include: false
-mapview::mapview(domains) + cells_sacsubset_hmt + subcells_sacsubset_hmt + hmt_pol_hab_sacsubset_centroid
+if (FALSE) {
+  mapview::mapview(domains) +
+    cells_sacsubset_hmt +
+    subcells_sacsubset_hmt +
+    hmt_pol_hab_sacsubset_centroid
+}
 ```
 
 Joining subcell and cell addresses to the habitat polygons.
