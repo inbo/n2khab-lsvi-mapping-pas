@@ -1,0 +1,32 @@
+..generic:
+  git2rdata: 0.5.2
+  optimize: yes
+  NA string: NA
+  sorting:
+  - cell_address
+  - subcell_address
+  hash: f770f1e3334f448d9972e34afaea954e6bf68ca7
+  data_hash: 8c67a5506304ea6d2c48d28746ee45fc624c89ef
+subcell_address:
+  class: integer
+cell_address:
+  class: integer
+domain:
+  class: factor
+  labels:
+  - BE2100015
+  - BE2100024
+  - BE2200028
+  - BE2200035
+  - BE2200039
+  index:
+  - 1
+  - 2
+  - 3
+  - 4
+  - 5
+  ordered: no
+panel_cell:
+  class: integer
+panel_subcell:
+  class: integer

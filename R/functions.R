@@ -48,3 +48,25 @@ verify_n2khab_data <- function(reference, requirements) {
   }
   message("All n2khab_data requirements are fulfilled!")
 }
+
+
+
+
+
+#' Divide a series of subcells in two panels
+#'
+#' Divide a series of subcells in two panels of equal size (if possible), taking
+#' into account the GRTS address.
+#'
+#' The algorithm decides at random which panel is larger, in the case of an odd
+#' number of subcells.
+divide_subcell_addresses_in_two <- function(subcell_addresses) {
+  toss <- sample(1:2, 1) %>% as.integer()
+  int_groupsize <- length(subcell_addresses) %/% 2
+  memships <- c(
+    rep(1L, int_groupsize),
+    if (length(subcell_addresses) / 2 != int_groupsize) toss,
+    rep(2L, int_groupsize)
+  )
+  memships[match(subcell_addresses, sort(subcell_addresses))]
+}

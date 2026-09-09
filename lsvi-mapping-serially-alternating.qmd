@@ -6,6 +6,7 @@ published-title: Date
 # bibliography: ../../../refs_mne_design.yaml
 params:
   lang: nl
+  rewrite_subcellpanels: FALSE
 engine: knitr
 format:
   html:
@@ -37,7 +38,8 @@ gitroot <- find_root(is_git_root)
 datapath <- file.path(projroot, "data")
 for (subdir in c(
   "binary/results",
-  "text/raw"
+  "text/raw",
+  "text/results"
 )) {
   path <- file.path(datapath, subdir)
   if (!dir.exists(path)) dir.create(path, recursive = TRUE)
@@ -213,7 +215,7 @@ The (sub)cells are retained when they overlap the domain (the cell center does n
 We also include the cell address in the subcells object.
 
 ```{r}
-cells_sacsubset <-
+cells_sacsubset_pre <-
   cells[vect(domains), , drop = FALSE] %>% 
   as.polygons(round = FALSE, aggregate = FALSE) %>% 
   st_as_sf() %>% 
@@ -221,6 +223,20 @@ cells_sacsubset <-
   rename(cell_address = 1) %>% 
   mutate(cell_address = as.integer(cell_address)) %>% 
   st_as_sf()
+# adding domain attribute
+cells_sacsubset <- 
+  cells_sacsubset_pre %>% 
+  st_join(
+    domains %>% select(domain),
+    join = st_intersects,
+    left = FALSE
+  ) %>% 
+  relocate(geometry, .after = last_col()) %>% 
+  arrange(domain, cell_address)
+# we assume that no cells are member of two domains at the same time (if not
+# fulfilled we need to re-evaluate how we cope with domain-wise cell panel
+# membership)
+stopifnot(nrow(cells_sacsubset_pre) == nrow(cells_sacsubset))
 subcells_sacsubset <-
   subcells[vect(domains), , drop = FALSE] %>% 
   as.polygons(round = FALSE, aggregate = FALSE) %>% 
@@ -322,13 +338,247 @@ hmt_pol_hab_sacsubset_subcell
 ```
 
 
-<!-- Plan: -->
+## Implement membership design
 
-<!-- distribute cells over 6 panels for open types -->
-<!-- distribute (member) subcells over 12 (sub)panels for forest types -->
+The panel membership will be defined at the level of cells and subcells, using their (reverse) GRTS address order.
 
-<!-- assign panels to years -->
+For panel memberships, we start from the `cells_sacsubset` and `subcells_sacsubset` objects without taking into account habitat polygon distribution, to make these membership more stable through time, i.e. not sensitive to changes in the habitatmap.
+This approach is expected to still lead to a relatively even spread of the habitat polygons over panels, which we will check.
 
-<!-- generate 3 layers with the year attribute: cells, subcells, polygons -->
+We always recalculate the cell panel membership.
+If the domains ever change, this may cause a few shifts but these should still be relatively small given the large number of cells compared to the number of panels.
+Still, we will protect against effects of domain additions or removals by calculating panel membership domain-wise, not across domains.
+
+```{r}
+set.seed(20260908) # not clear whether this may have effect
+cells_sacsubset_panel <- 
+  cells_sacsubset %>% 
+  st_drop_geometry() %>% 
+  mutate(
+    panel_cell = cell_address %>% 
+      ggplot2::cut_number(n = 6) %>% 
+      as.integer(),
+    .by = domain
+  )
+```
+
+Distribution of cells over panels:
+
+```{r}
+table(cells_sacsubset_panel$panel_cell)
+```
+
+We have calculated subcell panel membership in the past and saved it on disk.
+We recalculate the panel membership (and optionally rewrite it) to test for equality with the version on disk.
+
+```{r}
+set.seed(20260908)
+subcells_sacsubset_panel_recalc <- 
+  subcells_sacsubset %>% 
+  st_drop_geometry() %>% 
+  inner_join(
+    cells_sacsubset_panel,
+    join_by(cell_address, domain),
+    relationship = "many-to-one",
+    unmatched = "error"
+  ) %>% 
+  mutate(
+    panel_subcell = divide_subcell_addresses_in_two(subcell_address),
+    .by = cell_address
+  )
+```
+
+```{r}
+if (params$rewrite_subcellpanels) {
+  subcells_sacsubset_panel_recalc %>% 
+    write_vc(
+      file = "subcells_sacsubset_panel",
+      root = file.path(datapath, "text/results"),
+      digits = 15,
+      optimize = TRUE,
+      strict = FALSE,
+      sorting = c("cell_address", "subcell_address")
+    ) %>% 
+    convert_line_endings(root = file.path(datapath, "text/results"))
+}
+```
+
+Using the subcell panel membership that has been saved before, and test that it is the same.
+
+```{r}
+subcells_sacsubset_panel <- 
+  read_vc(
+    file = "subcells_sacsubset_panel",
+    root = file.path(datapath, "text/results")
+  ) %>% 
+  as_tibble()
+# if this test fails, manual intervention is needed to decide on changes
+stopifnot(all.equal(
+  subcells_sacsubset_panel,
+  subcells_sacsubset_panel_recalc,
+  check.attributes = FALSE
+))
+```
+
+## Define revisit design
+
+We define the revisit design as an assignment of calendar years to panels for a period of 24 years.
+
+The revisit design is different between polygons that have at least one open type and forest polygons:
+
+- when open types are present, a cycle duration of 6 years is used in a serially alternating pattern [1-5];
+- when a polygon is forest-only, a cycle duration of 12 years is used in a serially alternating pattern [1-11], implemented by creating 2 subpanels within each panel for open types.
+In this way the panel membership of open types is taken into account.
+
+Generating the panel calendar.
+
+```{r}
+panel_calendar <- 
+  subcells_sacsubset_panel %>% 
+  expand(
+    panel_cell = full_seq(panel_cell, 1L),
+    panel_subcell = full_seq(panel_subcell, 1L)
+  ) %>% 
+  arrange(panel_subcell, panel_cell) %>% 
+  bind_rows(., .) %>% 
+  bind_cols(year_lsvi = year_origin + seq_len(nrow(.)) - 1L)
+```
+
+
+## Generate calendars for cells, subcells and polygons
+
+We generate the cell calendar (open types), the subcell calendar (forest types) and polygon calendar by joining the panel years to the panels.
+Only in the polygon calendar it is possible to integrate both revisit designs without spatial overlaps.
+
+```{r}
+cells_calendar <- 
+  cells_sacsubset_panel %>% 
+  inner_join(
+    panel_calendar %>% 
+      select(panel_cell, year_lsvi),
+    join_by(panel_cell),
+    relationship = "many-to-many",
+    unmatched = "error"
+  )
+```
+
+```{r}
+subcells_calendar <- 
+  subcells_sacsubset_panel %>% 
+  inner_join(
+    panel_calendar,
+    join_by(panel_cell, panel_subcell),
+    relationship = "many-to-many",
+    unmatched = "error"
+  )
+```
+
+In the polygon calendar, we set the subcell address and subcell panel as missing if the polygon has at least one open type, to avoid confusion: subcells are not relevant in the revisit design of those polygons.
+
+```{r}
+polygons_calendar <- 
+  hmt_pol_hab_sacsubset_subcell %>% 
+  st_drop_geometry() %>% 
+  inner_join(
+    cells_calendar,
+    join_by(cell_address, domain),
+    relationship = "many-to-many",
+    unmatched = c("error", "drop")
+  ) %>% 
+  left_join(
+    subcells_calendar,
+    join_by(
+      subcell_address,
+      cell_address,
+      domain,
+      panel_cell,
+      # matching years: (forest) subcell revisit years match (open) cell revisit
+      # years
+      year_lsvi
+    ),
+    # multiple polygons can have their centroid in the same subcell
+    relationship = "many-to-one",
+    unmatched = "drop"
+  ) %>% 
+  # keep subcell_address and panel_subcell only for forest-only polygons
+  mutate(across(
+    c(subcell_address, panel_subcell),
+    \(x) ifelse(has_open_type, NA_integer_, x)
+  )) %>% 
+  # drop the empty subcell revisits in case of forest-only polygons
+  filter_out(!has_open_type & is.na(panel_subcell)) %>% 
+  relocate(
+    c(
+      year_lsvi,
+      domain,
+      cell_address,
+      panel_cell,
+      subcell_address,
+      panel_subcell
+    ),
+    .after = has_open_type
+  ) %>% 
+  arrange(year_lsvi, domain, cell_address, subcell_address)
+```
+
+
+## Derive applied, spatial objects
+
+We also derive geospatial objects that flatten the years in a single row.
+These objects are stripped from background information to avoid confusion in applications.
+
+```{r}
+opentypes_calendar_lsvi_pas <-
+  cells_sacsubset %>% 
+  inner_join(
+    cells_calendar %>% 
+      summarise(
+        years_lsvi = str_flatten(sort(year_lsvi), collapse = "|") %>% factor(),
+        .by = c(cell_address, domain)
+      ),
+    join_by(cell_address, domain),
+    relationship = "one-to-one",
+    unmatched = "error"
+  ) %>%
+  relocate(geometry, .after = last_col()) %>% 
+  arrange(domain, years_lsvi, cell_address)
+```
+
+```{r}
+foresttypes_calendar_lsvi_pas <-
+  subcells_sacsubset %>% 
+  select(-cell_address) %>% 
+  inner_join(
+    subcells_calendar %>% 
+      summarise(
+        years_lsvi = str_flatten(sort(year_lsvi), collapse = "|") %>% factor(),
+        .by = c(subcell_address, domain)
+      ),
+    join_by(subcell_address, domain),
+    relationship = "one-to-one",
+    unmatched = "error"
+  ) %>%
+  relocate(geometry, .after = last_col()) %>% 
+  arrange(domain, years_lsvi, subcell_address)
+```
+
+```{r}
+polygons_calendar_lsvi_pas <-
+  hmt_pol_hab_sacsubset %>% 
+  inner_join(
+    polygons_calendar %>% 
+      summarise(
+        years_lsvi = str_flatten(sort(year_lsvi), collapse = "|") %>% factor(),
+        .by = c(polygon_id, description_orig, has_open_type, domain)
+      ),
+    join_by(polygon_id, description_orig, has_open_type),
+    relationship = "one-to-one",
+    unmatched = "error"
+  ) %>%
+  relocate(geom, .after = last_col()) %>% 
+  arrange(domain, years_lsvi, polygon_id)
+```
+
+
 
 ## Writing to GeoPackage
