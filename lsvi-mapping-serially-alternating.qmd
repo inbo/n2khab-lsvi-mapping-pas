@@ -53,8 +53,10 @@ library(forcats)
 library(lubridate)
 library(git2rdata)
 library(sf)
+library(units)
 library(terra)
 library(n2khab)
+library(ggplot2)
 source(file.path(projroot, "R/functions.R"))
 opts_chunk$set(
   echo = TRUE,
@@ -356,7 +358,7 @@ cells_sacsubset_panel <-
   st_drop_geometry() %>% 
   mutate(
     panel_cell = cell_address %>% 
-      ggplot2::cut_number(n = 6) %>% 
+      cut_number(n = 6) %>% 
       as.integer(),
     .by = domain
   )
@@ -580,5 +582,159 @@ polygons_calendar_lsvi_pas <-
 ```
 
 
+## Explore results
+
+```{r}
+plot_category_areas <- function(df, fill = NULL) {
+  df %>% 
+  mutate(surface_area = round(surface_area, 2)) %>% 
+  ggplot(aes(
+    x = year_lsvi,
+    y = surface_area,
+    fill = {{fill}},
+    label = surface_area
+  )) +
+  geom_col() +
+  scale_x_continuous(breaks = seq(2024, 2047, 1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.4))
+}
+```
+
+### Visualizing revisit design: total cell and subcell surface areas by year
+
+```{r}
+cell_areas_yr <- 
+  cells_sacsubset %>% 
+  select(cell_address) %>% 
+  mutate(cell_area = st_area(.) %>% set_units("ha")) %>% 
+  st_drop_geometry() %>% 
+  inner_join(
+    cells_calendar %>%
+      select(domain, cell_address, year_lsvi),
+    join_by(cell_address),
+    relationship = "one-to-many",
+    unmatched = "error"
+  ) %>% 
+  summarise(
+    surface_area = sum(cell_area),
+    .by = c(domain, year_lsvi)
+  )
+cell_areas_yr %>% 
+  plot_category_areas(fill = domain) +
+  ggtitle("Surface area of all cells intersecting the domains, irrespective of the presence of habitat")
+```
+
+```{r}
+subcell_areas_yr <- 
+  subcells_sacsubset %>% 
+  select(subcell_address) %>% 
+  mutate(subcell_area = st_area(.) %>% set_units("ha")) %>% 
+  st_drop_geometry() %>% 
+  inner_join(
+    subcells_calendar %>%
+      select(domain, subcell_address, year_lsvi),
+    join_by(subcell_address),
+    relationship = "one-to-many",
+    unmatched = "error"
+  ) %>% 
+  summarise(
+    surface_area = sum(subcell_area),
+    .by = c(domain, year_lsvi)
+  )
+subcell_areas_yr %>% 
+  plot_category_areas(fill = domain) +
+  ggtitle("Surface area of all subcells intersecting the domains, irrespective of the presence of habitat")
+```
+
+### Visualizing LSVI surface areas by year
+
+The rows of following table represent mutually exclusive groups of polygons.
+
+```{r}
+polygons_calendar_lsvi_pas %>% 
+  mutate(polygon_area = st_area(.) %>% set_units("ha")) %>% 
+  st_drop_geometry() %>% 
+  summarise(
+    surface_area = sum(polygon_area) %>% round(2),
+    .by = c(has_open_type, years_lsvi)
+  ) %>% 
+  arrange(desc(has_open_type), years_lsvi) %>% 
+  our_kbl()
+```
+
+The same information, visualized by year:
+
+```{r}
+surface_areas_yr <- 
+  hmt_pol_hab_sacsubset %>% 
+  select(polygon_id) %>% 
+  mutate(polygon_area = st_area(.) %>% set_units("ha")) %>% 
+  st_drop_geometry() %>% 
+  inner_join(
+    polygons_calendar %>%
+      select(domain, polygon_id, has_open_type, year_lsvi),
+    join_by(polygon_id),
+    relationship = "one-to-many",
+    unmatched = "error"
+  ) %>% 
+  mutate(polygon_category = ifelse(
+    has_open_type,
+    "contains_opentype",
+    "forest_only"
+  )) %>% 
+  summarise(
+    surface_area = sum(polygon_area),
+    .by = c(domain, polygon_category, year_lsvi)
+  )
+```
+
+```{r}
+surface_areas_yr %>% 
+  summarise(
+    surface_area = sum(surface_area),
+    .by = c(polygon_category, year_lsvi)
+  ) %>% 
+  plot_category_areas(fill = polygon_category) +
+  geom_text(size = 3, vjust = 2)
+```
+
+Distinguishing domains:
+
+```{r}
+surface_areas_yr %>% 
+  summarise(
+    surface_area = sum(surface_area),
+    .by = c(domain, polygon_category, year_lsvi)
+  ) %>% 
+  plot_category_areas(fill = polygon_category) +
+  facet_wrap(~domain, scales = "free_y")
+```
+
+Total:
+
+```{r}
+surface_areas_yr_total <- 
+  surface_areas_yr %>% 
+  summarise(
+    surface_area = sum(surface_area),
+    .by = c(year_lsvi)
+  ) %>% 
+  mutate(surface_area = round(surface_area, 2)) %>% 
+  arrange(year_lsvi)
+our_kbl(surface_areas_yr_total)
+```
+
+```{r}
+surface_areas_yr_total %>% 
+  ggplot(aes(
+    x = year_lsvi,
+    y = surface_area,
+    label = surface_area
+  )) +
+  geom_col(fill = "white") +
+  geom_text(size = 3, vjust = 2) +
+  scale_x_continuous(breaks = seq(2024, 2047, 1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.4))
+```
 
 ## Writing to GeoPackage
