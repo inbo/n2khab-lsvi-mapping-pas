@@ -5,8 +5,8 @@
   sorting:
   - cell_address
   - subcell_address
-  hash: f770f1e3334f448d9972e34afaea954e6bf68ca7
-  data_hash: 8c67a5506304ea6d2c48d28746ee45fc624c89ef
+  hash: 4fe565e4be2676abb9e875f7e59f9728d9a6dff2
+  data_hash: 6574d96350d031651a229b6c6f7a8c2793484b15
 subcell_address:
   class: integer
 cell_address:
@@ -28,5 +28,5 @@ domain:
   ordered: no
 panel_cell:
   class: integer
-panel_subcell:
+subpanel_subcell:
   class: integer

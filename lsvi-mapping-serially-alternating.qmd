@@ -347,6 +347,8 @@ The panel membership will be defined at the level of cells and subcells, using t
 For panel memberships, we start from the `cells_sacsubset` and `subcells_sacsubset` objects without taking into account habitat polygon distribution, to make these membership more stable through time, i.e. not sensitive to changes in the habitatmap.
 This approach is expected to still lead to a relatively even spread of the habitat polygons over panels, which we will check.
 
+Note that for subcells we use _subpanels_, i.e. a numbering to be interpreted within the cell panel.
+
 We always recalculate the cell panel membership.
 If the domains ever change, this may cause a few shifts but these should still be relatively small given the large number of cells compared to the number of panels.
 Still, we will protect against effects of domain additions or removals by calculating panel membership domain-wise, not across domains.
@@ -370,12 +372,12 @@ Distribution of cells over panels:
 table(cells_sacsubset_panel$panel_cell)
 ```
 
-We have calculated subcell panel membership in the past and saved it on disk.
-We recalculate the panel membership (and optionally rewrite it) to test for equality with the version on disk.
+We have calculated subcell membership of subpanels in the past and saved it on disk.
+We recalculate the subpanel membership (and optionally rewrite it) to test for equality with the version on disk.
 
 ```{r}
 set.seed(20260908)
-subcells_sacsubset_panel_recalc <- 
+subcells_sacsubset_subpanel_recalc <- 
   subcells_sacsubset %>% 
   st_drop_geometry() %>% 
   inner_join(
@@ -385,16 +387,16 @@ subcells_sacsubset_panel_recalc <-
     unmatched = "error"
   ) %>% 
   mutate(
-    panel_subcell = divide_subcell_addresses_in_two(subcell_address),
+    subpanel_subcell = divide_subcell_addresses_in_two(subcell_address),
     .by = cell_address
   )
 ```
 
 ```{r}
 if (params$rewrite_subcellpanels) {
-  subcells_sacsubset_panel_recalc %>% 
+  subcells_sacsubset_subpanel_recalc %>% 
     write_vc(
-      file = "subcells_sacsubset_panel",
+      file = "subcells_sacsubset_subpanel",
       root = file.path(datapath, "text/results"),
       digits = 15,
       optimize = TRUE,
@@ -405,43 +407,43 @@ if (params$rewrite_subcellpanels) {
 }
 ```
 
-Using the subcell panel membership that has been saved before, and test that it is the same.
+Using the subcell subpanel membership that has been saved before, and test that it is the same.
 
 ```{r}
-subcells_sacsubset_panel <- 
+subcells_sacsubset_subpanel <- 
   read_vc(
-    file = "subcells_sacsubset_panel",
+    file = "subcells_sacsubset_subpanel",
     root = file.path(datapath, "text/results")
   ) %>% 
   as_tibble()
 # if this test fails, manual intervention is needed to decide on changes
 stopifnot(all.equal(
-  subcells_sacsubset_panel,
-  subcells_sacsubset_panel_recalc,
+  subcells_sacsubset_subpanel,
+  subcells_sacsubset_subpanel_recalc,
   check.attributes = FALSE
 ))
 ```
 
 ## Define revisit design
 
-We define the revisit design as an assignment of calendar years to panels for a period of 24 years.
+We define the revisit design as an assignment of calendar years to panels and subpanels for a period of 24 years.
 
 The revisit design is different between polygons that have at least one open type and forest polygons:
 
 - when open types are present, a cycle duration of 6 years is used in a serially alternating pattern [1-5];
-- when a polygon is forest-only, a cycle duration of 12 years is used in a serially alternating pattern [1-11], implemented by creating 2 subpanels within each panel for open types.
+- when a polygon is forest-only, a cycle duration of 12 years is used in a serially alternating pattern [1-11], implemented by creating 2 _subpanels_ within each panel for open types.
 In this way the panel membership of open types is taken into account.
 
 Generating the panel calendar.
 
 ```{r}
 panel_calendar <- 
-  subcells_sacsubset_panel %>% 
+  subcells_sacsubset_subpanel %>% 
   expand(
     panel_cell = full_seq(panel_cell, 1L),
-    panel_subcell = full_seq(panel_subcell, 1L)
+    subpanel_subcell = full_seq(subpanel_subcell, 1L)
   ) %>% 
-  arrange(panel_subcell, panel_cell) %>% 
+  arrange(subpanel_subcell, panel_cell) %>% 
   bind_rows(., .) %>% 
   bind_cols(year_lsvi = year_origin + seq_len(nrow(.)) - 1L)
 ```
@@ -449,7 +451,7 @@ panel_calendar <-
 
 ## Generate calendars for cells, subcells and polygons
 
-We generate the cell calendar (open types), the subcell calendar (forest types) and polygon calendar by joining the panel years to the panels.
+We generate the cell calendar (open types), the subcell calendar (forest types) and polygon calendar by joining the panel years to the (sub)panels.
 Only in the polygon calendar it is possible to integrate both revisit designs without spatial overlaps.
 
 ```{r}
@@ -466,16 +468,16 @@ cells_calendar <-
 
 ```{r}
 subcells_calendar <- 
-  subcells_sacsubset_panel %>% 
+  subcells_sacsubset_subpanel %>% 
   inner_join(
     panel_calendar,
-    join_by(panel_cell, panel_subcell),
+    join_by(panel_cell, subpanel_subcell),
     relationship = "many-to-many",
     unmatched = "error"
   )
 ```
 
-In the polygon calendar, we set the subcell address and subcell panel as missing if the polygon has at least one open type, to avoid confusion: subcells are not relevant in the revisit design of those polygons.
+In the polygon calendar, we set the subcell address and subcell subpanel as missing if the polygon has at least one open type, to avoid confusion: subcells are not relevant in the revisit design of those polygons.
 
 ```{r}
 polygons_calendar <- 
@@ -502,13 +504,13 @@ polygons_calendar <-
     relationship = "many-to-one",
     unmatched = "drop"
   ) %>% 
-  # keep subcell_address and panel_subcell only for forest-only polygons
+  # keep subcell_address and subpanel_subcell only for forest-only polygons
   mutate(across(
-    c(subcell_address, panel_subcell),
+    c(subcell_address, subpanel_subcell),
     \(x) ifelse(has_open_type, NA_integer_, x)
   )) %>% 
   # drop the empty subcell revisits in case of forest-only polygons
-  filter_out(!has_open_type & is.na(panel_subcell)) %>% 
+  filter_out(!has_open_type & is.na(subpanel_subcell)) %>% 
   relocate(
     c(
       year_lsvi,
@@ -516,7 +518,7 @@ polygons_calendar <-
       cell_address,
       panel_cell,
       subcell_address,
-      panel_subcell
+      subpanel_subcell
     ),
     .after = has_open_type
   ) %>% 
