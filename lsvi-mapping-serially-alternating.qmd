@@ -852,4 +852,35 @@ surface_areas_yr_total %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.4))
 ```
 
+
 ## Writing to GeoPackage
+
+```{r}
+gpkg_path <- file.path(datapath, "binary/results/lsvi_mapping_pas.gpkg")
+polygons_calendar_lsvi_pas %>%
+  write_sf(
+    gpkg_path,
+    layer = "polygons_calendar_lsvi_pas",
+    delete_dsn = TRUE
+  )
+opentypes_cellcalendar_lsvi_pas %>%
+  write_sf(
+    gpkg_path,
+    layer = "opentypes_cellcalendar_lsvi_pas",
+    delete_layer = TRUE
+  )
+foresttypes_cellcalendar_lsvi_pas %>%
+  write_sf(
+    gpkg_path,
+    layer = "foresttypes_cellcalendar_lsvi_pas",
+    delete_layer = TRUE
+  )
+```
+
+Inspecting the file layers.
+
+```{r}
+#| paged.print: false
+#| code-fold: show
+st_layers(gpkg_path)
+```
