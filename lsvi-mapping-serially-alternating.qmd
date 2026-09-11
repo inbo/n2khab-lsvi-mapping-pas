@@ -57,6 +57,7 @@ library(units)
 library(terra)
 library(n2khab)
 library(ggplot2)
+library(mapview)
 source(file.path(projroot, "R/functions.R"))
 opts_chunk$set(
   echo = TRUE,
@@ -276,10 +277,22 @@ subcells_sacsubset
 Visualizing domains, cells and subcells.
 
 ```{r}
+#| fig-height: 8
+#| fig-width: 8
 mvmap <- 
-  mapview::mapview(domains, map.types = "CartoDB.Positron") +
-  cells_sacsubset +
-  subcells_sacsubset
+  mapview(
+    subcells_sacsubset,
+    map.types = "CartoDB.Positron",
+    col.regions = "blue"
+  ) +
+  mapview(cells_sacsubset, col.regions = "red", lwd = 1.5, alpha.regions = 0.5) +
+  mapview(
+    domains,
+    alpha.regions = 0,
+    col.regions = "pink",
+    color = "pink",
+    lwd = 2
+  )
 mvmap@map %>% 
   inbospatial::add_wms_be_cartoweb("topo_grey")
 ```
