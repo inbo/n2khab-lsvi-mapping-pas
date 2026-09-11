@@ -168,7 +168,7 @@ Reading GRTS raster cells at two specific resolutions.
 
 ```{r}
 #| code-fold: show
-main_level <- 4
+main_level <- 5
 cells <- read_GRTSmh_diffres(level = main_level)
 subcells <- read_GRTSmh_diffres(level = main_level - 1)
 ```
