@@ -1,5 +1,5 @@
 ---
-title: "Designing LSVI-mapping in effect monitoring for the Programmatic Approach Nitrogen (PAN)"
+title: "Designing LSVI-mapping in effect monitoring for the Programmatic Nitrogen Approach (PAS)"
 date: today
 published-title: Date
 # csl: "`r if (curl::has_internet()) 'https://raw.githubusercontent.com/citation-style-language/styles/master/research-institute-for-nature-and-forest.csl' else system.file('research-institute-for-nature-and-forest.csl', package = 'INBOmd')`"
