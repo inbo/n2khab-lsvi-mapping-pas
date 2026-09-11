@@ -754,7 +754,8 @@ subcell_count_yr %>%
 
 ### Visualizing LSVI surface areas by year
 
-The rows of following table represent mutually exclusive groups of polygons.
+Total areas according to `has_open_type` and panel (as represented by groups of years).
+The table rows represent mutually exclusive polygon sets.
 
 ```{r}
 polygons_calendar_lsvi_pas %>% 
@@ -816,7 +817,7 @@ surface_areas_yr %>%
   facet_wrap(~domain, scales = "free_y")
 ```
 
-Total:
+Total areas by year:
 
 ```{r}
 surface_areas_yr_total <- 
