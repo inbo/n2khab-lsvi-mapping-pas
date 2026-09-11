@@ -603,7 +603,7 @@ We also derive geospatial objects that flatten the years in a single row.
 These objects are stripped from background information to avoid confusion in applications.
 
 ```{r}
-opentypes_calendar_lsvi_pas <-
+opentypes_cellcalendar_lsvi_pas <-
   cells_sacsubset %>% 
   inner_join(
     cells_calendar %>% 
@@ -624,11 +624,11 @@ Inspecting geospatial form of the cell calendar (open types):
 ```{r}
 #| paged.print: false
 #| code-fold: show
-opentypes_calendar_lsvi_pas
+opentypes_cellcalendar_lsvi_pas
 ```
 
 ```{r}
-foresttypes_calendar_lsvi_pas <-
+foresttypes_cellcalendar_lsvi_pas <-
   subcells_sacsubset %>% 
   select(-cell_address) %>% 
   inner_join(
@@ -650,7 +650,7 @@ Inspecting geospatial form of the subcell calendar (forest types):
 ```{r}
 #| paged.print: false
 #| code-fold: show
-foresttypes_calendar_lsvi_pas
+foresttypes_cellcalendar_lsvi_pas
 ```
 
 ```{r}
