@@ -283,15 +283,23 @@ mvmap <-
   mapview(
     subcells_sacsubset,
     map.types = "CartoDB.Positron",
-    col.regions = "blue"
+    col.regions = "blue",
+    label = NA
   ) +
-  mapview(cells_sacsubset, col.regions = "red", lwd = 1.5, alpha.regions = 0.5) +
+  mapview(
+    cells_sacsubset,
+    col.regions = "red",
+    lwd = 1.5,
+    alpha.regions = 0.5,
+    label = NA
+  ) +
   mapview(
     domains,
     alpha.regions = 0,
     col.regions = "pink",
     color = "pink",
-    lwd = 2
+    lwd = 2,
+    label = NA
   )
 mvmap@map %>% 
   inbospatial::add_wms_be_cartoweb("topo_grey")
