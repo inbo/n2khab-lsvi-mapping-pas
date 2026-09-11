@@ -685,7 +685,10 @@ plot_category_areas <- function(df, response_var, fill = NULL) {
   )) +
   geom_col() +
   scale_x_continuous(breaks = seq(2024, 2047, 1)) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.4))
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.4),
+    legend.position = "bottom"
+  )
 }
 ```
 
