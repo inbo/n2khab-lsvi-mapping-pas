@@ -226,7 +226,14 @@ We also include the cell address in the subcells object.
 
 ```{r}
 cells_sacsubset_pre <-
-  cells[vect(domains), , drop = FALSE] %>% 
+  extract(
+    cells,
+    domains,
+    ID = FALSE,
+    touches = TRUE,
+    cells = TRUE
+  )$cell %>% 
+  cells[., drop = FALSE] %>% 
   as.polygons(round = FALSE, aggregate = FALSE) %>% 
   st_as_sf() %>% 
   as_tibble() %>% 
@@ -248,7 +255,14 @@ cells_sacsubset <-
 # membership)
 stopifnot(nrow(cells_sacsubset_pre) == nrow(cells_sacsubset))
 subcells_sacsubset <-
-  subcells[vect(domains), , drop = FALSE] %>% 
+  extract(
+    subcells,
+    domains,
+    ID = FALSE,
+    touches = TRUE,
+    cells = TRUE
+  )$cell %>% 
+  subcells[., drop = FALSE] %>% 
   as.polygons(round = FALSE, aggregate = FALSE) %>% 
   st_as_sf() %>% 
   as_tibble() %>% 

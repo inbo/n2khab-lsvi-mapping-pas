@@ -6,7 +6,7 @@
   - cell_address
   - subcell_address
   hash: 4fe565e4be2676abb9e875f7e59f9728d9a6dff2
-  data_hash: 6574d96350d031651a229b6c6f7a8c2793484b15
+  data_hash: 43d8d24cbe0ae154c47a6c89b903bce8ac7c4d44
 subcell_address:
   class: integer
 cell_address:
