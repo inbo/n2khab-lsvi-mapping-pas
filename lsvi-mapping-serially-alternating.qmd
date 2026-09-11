@@ -422,7 +422,13 @@ subcells_sacsubset_subpanel_recalc <-
 ```
 
 ```{r}
-if (params$rewrite_subcellpanels) {
+if (
+  params$rewrite_subcellpanels ||
+  !file.exists(file.path(
+    datapath,
+    "text/results/subcells_sacsubset_subpanel.yml"
+  ))
+) {
   subcells_sacsubset_subpanel_recalc %>% 
     write_vc(
       file = "subcells_sacsubset_subpanel",
