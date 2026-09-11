@@ -79,12 +79,14 @@ our_scroll_kbl <- function(df, width = NULL, height = NULL) {
 Defining the regular expression for forest types.
 
 ```{r}
+#| code-fold: show
 forest_types_regex <- "^9|^2180|^rbbppm"
 ```
 
 Setting the theoretical first year of the first monitoring cycle as defined for reporting, i.e. taking into account the required alignment of monitoring cycles with reporting years.
 
 ```{r}
+#| code-fold: show
 year_origin <- 2024L
 ```
 
@@ -102,6 +104,7 @@ n2khab_data_checksums_reference <-
 Defining the data source versions to be used in this workflow.
 
 ```{r}
+#| code-fold: show
 versions_required <- c(
   sac = "sac_2013-01-18",
   habitatmap_terr = "habitatmap_terr_2025_v99_interim",
@@ -152,6 +155,7 @@ domains
 Reading spatial data of terrestrial types.
 
 ```{r}
+#| code-fold: show
 hmt <- read_habitatmap_terr(
   keep_aq_types = FALSE,
   drop_7220 = FALSE,
@@ -162,6 +166,7 @@ hmt <- read_habitatmap_terr(
 Reading GRTS raster cells at two specific resolutions.
 
 ```{r}
+#| code-fold: show
 main_level <- 4
 cells <- read_GRTSmh_diffres(level = main_level)
 subcells <- read_GRTSmh_diffres(level = main_level - 1)
@@ -205,10 +210,12 @@ Inspecting result:
 
 ```{r}
 #| paged.print: false
+#| code-fold: show
 hmt_pol_hab_sacsubset
 ```
 
 ```{r}
+#| code-fold: show
 table(hmt_pol_hab_sacsubset$has_open_type)
 ```
 
@@ -252,10 +259,17 @@ subcells_sacsubset <-
   relocate(geometry, .after = last_col())
 ```
 
-Inspecting `subcells_sacsubset`:
+Inspecting the results:
 
 ```{r}
 #| paged.print: false
+#| code-fold: show
+cells_sacsubset
+```
+
+```{r}
+#| paged.print: false
+#| code-fold: show
 subcells_sacsubset
 ```
 
@@ -336,6 +350,7 @@ Inspecting result:
 
 ```{r}
 #| paged.print: false
+#| code-fold: show
 hmt_pol_hab_sacsubset_subcell
 ```
 
@@ -369,6 +384,7 @@ cells_sacsubset_panel <-
 Distribution of cells over panels:
 
 ```{r}
+#| code-fold: show
 table(cells_sacsubset_panel$panel_cell)
 ```
 
@@ -448,6 +464,13 @@ panel_calendar <-
   bind_cols(year_lsvi = year_origin + seq_len(nrow(.)) - 1L)
 ```
 
+Inspecting the result:
+
+```{r}
+#| paged.print: false
+#| code-fold: show
+panel_calendar %>% print(n = Inf)
+```
 
 ## Generate calendars for cells, subcells and polygons
 
@@ -466,6 +489,13 @@ cells_calendar <-
   )
 ```
 
+Structure of the cell calendar (open types):
+
+```{r}
+#| code-fold: show
+glimpse(cells_calendar)
+```
+
 ```{r}
 subcells_calendar <- 
   subcells_sacsubset_subpanel %>% 
@@ -475,6 +505,13 @@ subcells_calendar <-
     relationship = "many-to-many",
     unmatched = "error"
   )
+```
+
+Structure of the subcell calendar (forest types):
+
+```{r}
+#| code-fold: show
+glimpse(subcells_calendar)
 ```
 
 In the polygon calendar, we set the subcell address and subcell subpanel as missing if the polygon has at least one open type, to avoid confusion: subcells are not relevant in the revisit design of those polygons.
@@ -525,6 +562,13 @@ polygons_calendar <-
   arrange(year_lsvi, domain, cell_address, subcell_address)
 ```
 
+Structure of the polygon calendar (all types):
+
+```{r}
+#| code-fold: show
+glimpse(polygons_calendar)
+```
+
 
 ## Derive applied, spatial objects
 
@@ -548,6 +592,14 @@ opentypes_calendar_lsvi_pas <-
   arrange(domain, years_lsvi, cell_address)
 ```
 
+Inspecting geospatial form of the cell calendar (open types):
+
+```{r}
+#| paged.print: false
+#| code-fold: show
+opentypes_calendar_lsvi_pas
+```
+
 ```{r}
 foresttypes_calendar_lsvi_pas <-
   subcells_sacsubset %>% 
@@ -566,6 +618,14 @@ foresttypes_calendar_lsvi_pas <-
   arrange(domain, years_lsvi, subcell_address)
 ```
 
+Inspecting geospatial form of the subcell calendar (forest types):
+
+```{r}
+#| paged.print: false
+#| code-fold: show
+foresttypes_calendar_lsvi_pas
+```
+
 ```{r}
 polygons_calendar_lsvi_pas <-
   hmt_pol_hab_sacsubset %>% 
@@ -581,6 +641,14 @@ polygons_calendar_lsvi_pas <-
   ) %>%
   relocate(geom, .after = last_col()) %>% 
   arrange(domain, years_lsvi, polygon_id)
+```
+
+Inspecting geospatial form of the polygon calendar (all types):
+
+```{r}
+#| paged.print: false
+#| code-fold: show
+polygons_calendar_lsvi_pas
 ```
 
 
