@@ -85,10 +85,12 @@ forest_types_regex <- "^9|^2180|^rbbppm"
 ```
 
 Setting the theoretical first year of the first monitoring cycle as defined for reporting, i.e. taking into account the required alignment of monitoring cycles with reporting years.
+Also, set the cycle duration for the open types.
 
 ```{r}
 #| code-fold: show
 year_origin <- 2024L
+cycle_opentypes <- 6L
 ```
 
 Reading the reference checksum values.
@@ -410,7 +412,7 @@ cells_sacsubset_panel <-
   st_drop_geometry() %>% 
   mutate(
     panel_cell = cell_address %>% 
-      cut_number(n = 6) %>% 
+      cut_number(n = cycle_opentypes) %>% 
       as.integer(),
     .by = domain
   )
