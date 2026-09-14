@@ -768,6 +768,57 @@ subcell_count_yr %>%
   ggtitle("Total number of subcells intersecting the domains, irrespective of the presence of habitat")
 ```
 
+### Distribution of types by year
+
+Spread of surface area by type and year:
+
+```{r}
+#| fig-height: 18
+#| fig-width: 14
+hmt_pol_hab_sacsubset %>% 
+  select(polygon_id) %>% 
+  mutate(polygon_area = st_area(.) %>% set_units("ha")) %>% 
+  st_drop_geometry() %>% 
+  inner_join(
+    hmt_occ_hab %>% select(polygon_id, type, phab),
+    join_by(polygon_id),
+    relationship = "one-to-many",
+    unmatched = c("error", "drop")
+  ) %>% 
+  mutate(
+    type_area = polygon_area * phab / 100,
+    .keep = "unused"
+  ) %>% 
+  mutate(is_forest_type = str_detect(type, forest_types_regex)) %>% 
+  # dropping type presences with phab = 0 (not useful for type area)
+  filter(type_area > set_units(0, "ha")) %>% 
+  inner_join(
+    polygons_calendar %>% 
+      select(polygon_id, domain, year_lsvi),
+    join_by(polygon_id),
+    relationship = "many-to-many",
+    # dropping calendar items where phab = 0
+    unmatched = c("error", "drop")
+  ) %>% 
+  summarise(
+    type_area = sum(type_area),
+    .by = c(type, year_lsvi)
+  ) %>% 
+  ggplot(aes(
+    x = year_lsvi,
+    y = type_area,
+    label = type_area
+  )) +
+  geom_col() +
+  scale_x_continuous(breaks = seq(year_origin, year_origin + 23, 1)) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.4),
+    legend.position = "bottom"
+  ) +
+  facet_wrap(~type, scales = "free_y", ncol = 5)
+```
+
+
 ### Visualizing LSVI surface areas by year
 
 Total areas according to `has_open_type` and panel (as represented by groups of years).
