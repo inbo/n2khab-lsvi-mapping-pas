@@ -85,10 +85,12 @@ forest_types_regex <- "^9|^2180|^rbbppm"
 ```
 
 Setting the theoretical first year of the first monitoring cycle as defined for reporting, i.e. taking into account the required alignment of monitoring cycles with reporting years.
+Also, set the cycle duration for the open types.
 
 ```{r}
 #| code-fold: show
 year_origin <- 2024L
+cycle_opentypes <- 6L
 ```
 
 Reading the reference checksum values.
@@ -226,13 +228,7 @@ We also include the cell address in the subcells object.
 
 ```{r}
 cells_sacsubset_pre <-
-  extract(
-    cells,
-    domains,
-    ID = FALSE,
-    touches = TRUE,
-    cells = TRUE
-  )$cell %>% 
+  extract(cells, domains, ID = FALSE, touches = TRUE, cells = TRUE)$cell %>% 
   cells[., drop = FALSE] %>% 
   as.polygons(round = FALSE, aggregate = FALSE) %>% 
   st_as_sf() %>% 
@@ -255,13 +251,7 @@ cells_sacsubset <-
 # membership)
 stopifnot(nrow(cells_sacsubset_pre) == nrow(cells_sacsubset))
 subcells_sacsubset <-
-  extract(
-    subcells,
-    domains,
-    ID = FALSE,
-    touches = TRUE,
-    cells = TRUE
-  )$cell %>% 
+  extract(subcells, domains, ID = FALSE, touches = TRUE, cells = TRUE)$cell %>% 
   subcells[., drop = FALSE] %>% 
   as.polygons(round = FALSE, aggregate = FALSE) %>% 
   st_as_sf() %>% 
@@ -410,7 +400,7 @@ cells_sacsubset_panel <-
   st_drop_geometry() %>% 
   mutate(
     panel_cell = cell_address %>% 
-      cut_number(n = 6) %>% 
+      cut_number(n = cycle_opentypes) %>% 
       as.integer(),
     .by = domain
   )
@@ -706,7 +696,11 @@ plot_category_areas <- function(df, response_var, fill = NULL) {
     label = {{response_var}}
   )) +
   geom_col() +
-  scale_x_continuous(breaks = seq(2024, 2047, 1)) +
+  scale_x_continuous(breaks = seq(
+    year_origin,
+    year_origin + 4 * cycle_opentypes - 1,
+    1
+  )) +
   theme(
     axis.text.x = element_text(angle = 90, vjust = 0.4),
     legend.position = "bottom"
@@ -773,6 +767,57 @@ subcell_count_yr %>%
   plot_category_areas(response_var = number_of_subcells, fill = domain) +
   ggtitle("Total number of subcells intersecting the domains, irrespective of the presence of habitat")
 ```
+
+### Distribution of types by year
+
+Spread of surface area by type and year:
+
+```{r}
+#| fig-height: 14
+#| fig-width: 14
+hmt_pol_hab_sacsubset %>% 
+  select(polygon_id) %>% 
+  mutate(polygon_area = st_area(.) %>% set_units("ha")) %>% 
+  st_drop_geometry() %>% 
+  inner_join(
+    hmt_occ_hab %>% select(polygon_id, type, phab),
+    join_by(polygon_id),
+    relationship = "one-to-many",
+    unmatched = c("error", "drop")
+  ) %>% 
+  mutate(
+    type_area = polygon_area * phab / 100,
+    .keep = "unused"
+  ) %>% 
+  mutate(is_forest_type = str_detect(type, forest_types_regex)) %>% 
+  # dropping type presences with phab = 0 (not useful for type area)
+  filter(type_area > set_units(0, "ha")) %>% 
+  inner_join(
+    polygons_calendar %>% 
+      select(polygon_id, domain, year_lsvi),
+    join_by(polygon_id),
+    relationship = "many-to-many",
+    # dropping calendar items where phab = 0
+    unmatched = c("error", "drop")
+  ) %>% 
+  summarise(
+    type_area = sum(type_area),
+    .by = c(type, year_lsvi)
+  ) %>% 
+  ggplot(aes(
+    x = year_lsvi,
+    y = type_area,
+    label = type_area
+  )) +
+  geom_col() +
+  scale_x_continuous(breaks = seq(year_origin, year_origin + 23, 1)) +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.4),
+    legend.position = "bottom"
+  ) +
+  facet_wrap(~type, scales = "free_y")
+```
+
 
 ### Visualizing LSVI surface areas by year
 
@@ -862,7 +907,11 @@ surface_areas_yr_total %>%
   )) +
   geom_col(fill = "white") +
   geom_text(size = 3, vjust = 2) +
-  scale_x_continuous(breaks = seq(2024, 2047, 1)) +
+  scale_x_continuous(breaks = seq(
+    year_origin,
+    year_origin + 4 * cycle_opentypes - 1,
+    1
+  )) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.4))
 ```
 
