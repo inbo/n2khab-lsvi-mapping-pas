@@ -819,7 +819,7 @@ subcell_count_yr %>%
 Spread of surface area by type and year:
 
 ```{r}
-#| fig-height: 14
+#| fig-height: 18
 #| fig-width: 14
 hmt_pol_hab_sacsubset %>% 
   select(polygon_id) %>% 
@@ -861,7 +861,7 @@ hmt_pol_hab_sacsubset %>%
     axis.text.x = element_text(angle = 90, vjust = 0.4),
     legend.position = "bottom"
   ) +
-  facet_wrap(~type, scales = "free_y")
+  facet_wrap(~type, scales = "free_y", ncol = 5)
 ```
 
 
