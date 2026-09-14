@@ -389,21 +389,67 @@ This approach is expected to still lead to a relatively even spread of the habit
 
 Note that for subcells we use _subpanels_, i.e. a numbering to be interpreted within the cell panel.
 
+<!-- BELOW IS TO BE REWRITTEN IF THIS SCENARIO IS CHOSEN: if the division is based on polygon surface area, then the panel membership of cells should also be stored and re-read, for stability reasons. -->
+<!-- This also means that we ignore future changes in the habitatmap wrt polygon surfaces in cells, assuming that the current panel membership remains useful in the long term. -->
+
 We always recalculate the cell panel membership.
 If the domains ever change, this may cause a few shifts but these should still be relatively small given the large number of cells compared to the number of panels.
 Still, we will protect against effects of domain additions or removals by calculating panel membership domain-wise, not across domains.
 
 ```{r}
 set.seed(20260908) # not clear whether this may have effect
-cells_sacsubset_panel <- 
+cells_sacsubset_panel_pre <- 
   cells_sacsubset %>% 
   st_drop_geometry() %>% 
+  left_join(
+    hmt_pol_hab_sacsubset_subcell %>% 
+      mutate(polygon_area = st_area(.) %>% set_units("ha")) %>% 
+      st_drop_geometry() %>% 
+      summarize(lsvi_area = sum(polygon_area), .by = c(cell_address, domain)),
+    join_by(cell_address, domain),
+    relationship = "one-to-one",
+    unmatched = "error"
+  ) %>% 
+  mutate(lsvi_area = coalesce(lsvi_area, set_units(0, "ha"))) %>% 
+  arrange(domain, cell_address) %>% 
+  # use equal area intervals for panels if sufficient cells are available in a
+  # domain (otherwise the required number of panels may not be met), if not use
+  # panels with roughly equal number of cells
   mutate(
-    panel_cell = cell_address %>% 
-      cut_number(n = cycle_opentypes) %>% 
-      as.integer(),
+    panel_cell =
+    if (n() > 5 * cycle_opentypes) {
+      cumsum(lsvi_area) %>%
+        as.numeric() %>% 
+        cut_interval(n = cycle_opentypes) %>%
+        as.integer()
+    } else {
+      cell_address %>%
+        cut_number(n = cycle_opentypes) %>%
+        as.integer()
+    },
     .by = domain
   )
+cells_sacsubset_panel <- 
+  cells_sacsubset_panel_pre %>% 
+  select(-lsvi_area)
+```
+
+Visually inspect panel membership of cells in relation to cumulative polygon area.
+
+```{r}
+cells_sacsubset_panel_pre %>% 
+  mutate(
+    cumulative_polygon_area = cumsum(lsvi_area),
+    cell_id = row_number(),
+    .by = domain
+  ) %>% 
+  ggplot(aes(
+    x = cell_id,
+    y = cumulative_polygon_area,
+    colour = factor(panel_cell)
+  )) +
+  geom_point() +
+  facet_wrap(~domain, scales = "free")
 ```
 
 Distribution of cells over panels:
