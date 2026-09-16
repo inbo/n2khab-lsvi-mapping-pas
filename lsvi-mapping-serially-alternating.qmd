@@ -1,6 +1,7 @@
 ---
 title: "Designing LSVI-mapping in effect monitoring for the Programmatic Nitrogen Approach (PAS)"
 date: today
+author: "Floris Vanderhaeghe \u25c6 review (p.p.): Karen Wuyts, Ward Tamsyn"
 published-title: Date
 csl: "`r if (curl::has_internet()) 'https://raw.githubusercontent.com/citation-style-language/styles/master/research-institute-for-nature-and-forest.csl' else system.file('research-institute-for-nature-and-forest.csl', package = 'INBOmd')`"
 bibliography: references.yaml
