@@ -1,0 +1,170 @@
+---
+references:
+- id: cochran_sampling_1977
+  author:
+    - family: Cochran
+      given: William Gemmell
+  citation-key: cochran_sampling_1977
+  ISBN: 978-0-471-16240-7
+  issued:
+    - year: 1977
+      month: 8
+      day: 1
+  language: en
+  number-of-pages: '456'
+  publisher: Wiley
+  source: Google Books
+  title: Sampling techniques
+  type: book
+
+- id: de_gruijter_sampling_2006
+  accessed:
+    - year: 2015
+      month: 7
+      day: 14
+  author:
+    - family: Gruijter
+      given: Jaap J.
+      non-dropping-particle: de
+    - family: Bierkens
+      given: Marc F. P.
+    - family: Brus
+      given: Dick J.
+    - family: Knotters
+      given: Martin
+  event-place: Berlin, Heidelberg
+  ISBN: 978-3-540-22486-0 978-3-540-33161-2
+  issued:
+    - year: 2006
+  language: en
+  publisher: Springer
+  publisher-place: Berlin, Heidelberg
+  source: CrossRef
+  title: Sampling for Natural Resource Monitoring
+  type: book
+  URL: http://link.springer.com/10.1007/3-540-33161-1
+
+-
+  id: onkelinx_thierry_2019_2682323
+  author:
+    -
+      family: Onkelinx
+      given: Thierry
+    -
+      family: Westra
+      given: Toon
+    -
+      family: Vanderhaeghe
+      given: Floris
+  citation-key: onkelinx_thierry_2019_2682323
+  DOI: 10.5281/zenodo.2682323
+  issued:
+    -
+      year: 2019
+      month: 5
+  publisher: Zenodo
+  title: GRTS master sample for habitat monitoring in Flanders
+  type: dataset
+  URL: https://doi.org/10.5281/zenodo.2682323
+
+-
+  id: vanderhaeghe_grtsmh_diffres:_2019
+  accessed:
+    -
+      year: 2019
+      month: 11
+      day: 18
+  author:
+    -
+      family: Vanderhaeghe
+      given: Floris
+  citation-key: vanderhaeghe_grtsmh_diffres:_2019
+  DOI: 10.5281/zenodo.3354406
+  issued:
+    -
+      year: 2019
+      month: 7
+      day: 29
+  language: en
+  publisher: Zenodo
+  source: Zenodo
+  title: 'GRTSmh_diffres: the raster data source GRTSmaster_habitats converted to 9 hierarchical cell address levels at the corresponding lower resolution'
+  title-short: GRTSmh_diffres
+  type: dataset
+  URL: https://zenodo.org/record/3354406
+
+-
+  id: wouters_habitatmap_terr_2026
+  accessed:
+    -
+      year: 2026
+      month: 9
+      day: 16
+  author:
+    -
+      family: Wouters
+      given: Jan
+    -
+      family: Vanderhaeghe
+      given: Floris
+    -
+      family: De Saeger
+      given: Steven
+    -
+      family: Westra
+      given: Toon
+    -
+      family: Herr
+      given: Cécile
+  citation-key: wouters_habitatmap_terr_2026
+  DOI: 10.5281/zenodo.20797981
+  issued:
+    -
+      year: 2026
+      month: 5
+      day: 6
+  language: en
+  publisher: Research Institute for Nature and Forest (INBO)
+  source: Zenodo
+  title: 'habitatmap_terr: the interpreted, terrestrial part of habitatmap_stdized'
+  title-short: habitatmap_terr
+  type: dataset
+  URL: https://zenodo.org/records/20797981
+
+-
+  id: wouters_interim_2025
+  accessed:
+    -
+      year: 2026
+      month: 9
+      day: 16
+  author:
+    -
+      family: Wouters
+      given: Jan
+    -
+      family: Herr
+      given: Cécile
+    -
+      family: Vanderhaeghe
+      given: Floris
+    -
+      family: De Saeger
+      given: Steven
+    -
+      family: Westra
+      given: Toon
+  citation-key: wouters_interim_2025
+  DOI: 10.5281/zenodo.16877107
+  issued:
+    -
+      year: 2025
+      month: 6
+      day: 25
+  language: en
+  publisher: Zenodo
+  source: Zenodo
+  title: Interim version of habitatmap_terr
+  type: dataset
+  URL: https://zenodo.org/records/16877107
+...
