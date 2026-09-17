@@ -108,7 +108,7 @@ This follows the monitoring cycles for MHQ and NRL at the Flemish level.
 ### Aim of this report
 
 In this technical report we aim at designing the fieldwork of LSVI-mapping in PAS effect monitoring at a year-by-polygon resolution.
-As a result, the necessary calendars and spatial layers must be generated that are needed to plan fieldwork planning.
+As a result, the necessary calendars and spatial layers must be generated that are needed for fieldwork planning.
 
 More specifically, the design should meet several characteristics:
 
