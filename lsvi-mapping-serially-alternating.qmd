@@ -7,6 +7,7 @@ csl: "`r if (curl::has_internet()) 'https://raw.githubusercontent.com/citation-s
 bibliography: references.yaml
 params:
   lang: nl
+  rewrite_cellpanels: FALSE
   rewrite_subcellpanels: FALSE
 engine: knitr
 format:
@@ -527,60 +528,104 @@ hmt_pol_hab_sacsubset_subcell
 
 The panel membership will be defined at the level of cells and subcells, using their (reverse) GRTS address order.
 
-For panel memberships, we start from the `cells_sacsubset` and `subcells_sacsubset` objects without taking into account habitat polygon distribution, to make these membership more stable through time, i.e. not sensitive to changes in the habitatmap.
-This approach is expected to still lead to a relatively even spread of the habitat polygons over panels, which we will check.
+For panel memberships, we start from the `cells_sacsubset` and `subcells_sacsubset` objects.
 
 Note that for subcells we use _subpanels_, i.e. a numbering to be interpreted within the cell panel.
 
-<!-- BELOW IS TO BE REWRITTEN IF THIS SCENARIO IS CHOSEN: if the division is based on polygon surface area, then the panel membership of cells should also be stored and re-read, for stability reasons. -->
-<!-- This also means that we ignore future changes in the habitatmap wrt polygon surfaces in cells, assuming that the current panel membership remains useful in the long term. -->
+- For the distribution of cells over panels, we strive to a similar total polygon surface area between panels, if the domain is large enough (i.e. enough cells are available).
+Even though this depends on the actual version of the habitatmap used, we make these memberships stable through time by storing them in a data file.
+This is especially useful since the cells have rather large dimensions, which leads to high differences of polygon surface area between years if we just
+- For subcell membership of subpanels, as well as for cell panel membership in smaller domains, we don't take into account habitat polygon distribution and area, so these memberships are not sensitive to changes in the habitatmap anyway.
+Instead, we try to achieve a rougly similar number of (sub)cells between (sub)panels.
 
-We always recalculate the cell panel membership.
+The approach is expected to yield a sufficiently even spread of the habitat polygons over panels, which we will check.
+
+### Cell panel membership
+
+We have calculated panel membership of cells in the past and saved it on disk.
+
+We can optionally recalculate and rewrite the panel membership.
 If the domains ever change, this may cause a few shifts but these should still be relatively small given the large number of cells compared to the number of panels.
 Still, we will protect against effects of domain additions or removals by calculating panel membership domain-wise, not across domains.
 
 ```{r}
-set.seed(20260908) # not clear whether this may have effect
-cells_sacsubset_panel_pre <- 
-  cells_sacsubset %>% 
-  st_drop_geometry() %>% 
-  left_join(
-    hmt_pol_hab_sacsubset_subcell %>% 
-      mutate(polygon_area = st_area(.) %>% set_units("ha")) %>% 
-      st_drop_geometry() %>% 
-      summarize(lsvi_area = sum(polygon_area), .by = c(cell_address, domain)),
-    join_by(cell_address, domain),
-    relationship = "one-to-one",
-    unmatched = "error"
-  ) %>% 
-  mutate(lsvi_area = coalesce(lsvi_area, set_units(0, "ha"))) %>% 
-  arrange(domain, cell_address) %>% 
-  # use equal area intervals for panels if sufficient cells are available in a
-  # domain (otherwise the required number of panels may not be met), if not use
-  # panels with roughly equal number of cells
-  mutate(
-    panel_cell =
-    if (n() > 5 * cycle_opentypes) {
-      cumsum(lsvi_area) %>%
-        as.numeric() %>% 
-        cut_interval(n = cycle_opentypes) %>%
-        as.integer()
-    } else {
-      cell_address %>%
-        cut_number(n = cycle_opentypes) %>%
-        as.integer()
-    },
-    .by = domain
-  )
-cells_sacsubset_panel <- 
-  cells_sacsubset_panel_pre %>% 
-  select(-lsvi_area)
+add_cell_lsvi_area <- function(df) {
+  df %>% 
+    left_join(
+      hmt_pol_hab_sacsubset_subcell %>% 
+        mutate(polygon_area = st_area(.) %>% set_units("ha")) %>% 
+        st_drop_geometry() %>% 
+        summarize(lsvi_area = sum(polygon_area), .by = c(cell_address, domain)),
+      join_by(cell_address, domain),
+      relationship = "one-to-one",
+      unmatched = "error"
+    ) %>% 
+    mutate(lsvi_area = coalesce(lsvi_area, set_units(0, "ha")))
+}
 ```
 
-Visually inspect panel membership of cells in relation to cumulative polygon area.
 
 ```{r}
-cells_sacsubset_panel_pre %>% 
+if (
+  params$rewrite_cellpanels ||
+  !file.exists(file.path(
+    datapath,
+    "text/results/cells_sacsubset_panel.yml"
+  ))
+) {
+  set.seed(20260908)
+  cells_sacsubset_panel <- 
+    cells_sacsubset %>% 
+    st_drop_geometry() %>% 
+    add_cell_lsvi_area() %>% 
+    arrange(domain, cell_address) %>% 
+    # use equal area intervals for panels if sufficient cells are available in a
+    # domain (otherwise the required number of panels may not be met), if not use
+    # panels with roughly equal number of cells
+    mutate(
+      panel_cell =
+        if (n() > 5 * cycle_opentypes) {
+          cumsum(lsvi_area) %>%
+            as.numeric() %>% 
+            cut_interval(n = cycle_opentypes) %>%
+            as.integer()
+        } else {
+          cell_address %>%
+            cut_number(n = cycle_opentypes) %>%
+            as.integer()
+        },
+      .by = domain
+    ) %>% 
+    select(-lsvi_area)
+  cells_sacsubset_panel %>% 
+    write_vc(
+      file = "cells_sacsubset_panel",
+      root = file.path(datapath, "text/results"),
+      digits = 15,
+      optimize = TRUE,
+      strict = FALSE,
+      sorting = c("domain", "cell_address")
+    ) %>% 
+    convert_line_endings(root = file.path(datapath, "text/results"))
+}
+```
+
+Using the cell panel membership that has been saved before.
+
+```{r}
+cells_sacsubset_panel <- 
+  read_vc(
+    file = "cells_sacsubset_panel",
+    root = file.path(datapath, "text/results")
+  ) %>% 
+  as_tibble()
+```
+
+Visually inspect panel membership of cells in relation to (current) cumulative polygon area.
+
+```{r}
+cells_sacsubset_panel %>% 
+  add_cell_lsvi_area() %>% 
   mutate(
     cumulative_polygon_area = cumsum(lsvi_area),
     cell_id = row_number(),
@@ -601,6 +646,8 @@ Distribution of cells over panels:
 #| code-fold: show
 table(cells_sacsubset_panel$panel_cell)
 ```
+
+### Subpanel membership of subcells
 
 We have calculated subpanel membership of subcells in the past and saved it on disk.
 We recalculate the subpanel membership (and optionally rewrite it) to test for equality with the version on disk.
