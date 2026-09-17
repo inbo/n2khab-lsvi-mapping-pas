@@ -28,9 +28,11 @@ format:
 
 _Note: the source code of this document is available in a [GitHub repository](https://github.com/inbo/n2khab-lsvi-mapping-pas)._
 
-```{r setup, message = FALSE}
+```{r setup, message = FALSE, output = FALSE}
+renv::restore()
 options(scipen = 999)
 conflictRules("git2rdata", exclude = c("pull", "meta"))
+conflictRules("janitor", exclude = c("crosstab", "chisq.test", "fisher.test"))
 conflictRules("tidyr", exclude = "extract")
 conflictRules("knitr", exclude = "spin")
 conflictRules("kableExtra", exclude = "group_rows")
@@ -54,6 +56,7 @@ library(tidyr)
 library(stringr)
 library(forcats)
 library(lubridate)
+library(janitor)
 library(git2rdata)
 library(sf)
 library(units)
@@ -105,7 +108,7 @@ This follows the monitoring cycles for MHQ and NRL at the Flemish level.
 ### Aim of this report
 
 In this technical report we aim at designing the fieldwork of LSVI-mapping in PAS effect monitoring at a year-by-polygon resolution.
-As a result, the necessary calendars and spatial layers must be generated that are needed to plan fieldwork planning.
+As a result, the necessary calendars and spatial layers must be generated that are needed for fieldwork planning.
 
 More specifically, the design should meet several characteristics:
 
@@ -1058,6 +1061,46 @@ surface_areas_yr_total %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.4))
 ```
 
+### Addendum: yearly cell area
+
+We calculate and visualize the yearly surface area within domains that is covered by the cells, according to the cell panel calendar.
+This is relevant because the cells will at the same time serve for mapping BWK and habitat types over the whole surface of each domain: LSVI-mapping happens in combination with BWK & habitat mapping.
+We can use the revisit cycle of 6 years as approximation, hence use the entire cells (clipped by domain), even though in practice large forest polygons will only be mapped every 12 years.
+
+```{r}
+cell_areas_domain_year <- 
+  opentypes_cellcalendar_lsvi_pas %>% 
+  select(years_lsvi) %>% 
+  st_sf(agr = "constant") %>% 
+  st_intersection(
+    domains %>% 
+      select(domain) %>% 
+      st_sf(agr = "identity")
+  ) %>% 
+  mutate(surface_area = st_area(.) %>% set_units("ha")) %>% 
+  st_drop_geometry() %>% 
+  summarize(
+    surface_area = sum(surface_area),
+    .by = c(years_lsvi, starts_with("domain"))
+  )
+cell_areas_domain_year %>% 
+  mutate(surface_area = round(surface_area, 2)) %>% 
+  pivot_wider(names_from = domain, values_from = surface_area) %>% 
+  adorn_totals(where = "col", name = "total") %>% 
+  mutate(total = set_units(total, "ha")) %>% 
+  as_tibble() %>% 
+  our_kbl()
+```
+
+```{r}
+cell_areas_domain_year %>% 
+  mutate(cycle_year = as.integer(years_lsvi)) %>% 
+  ggplot(aes(x = cycle_year, y = surface_area, fill = domain)) +
+  geom_col() +
+  scale_x_continuous(breaks = seq_len(cycle_opentypes))
+```
+
+
 
 ## Writing to GeoPackage
 
@@ -1081,6 +1124,12 @@ foresttypes_cellcalendar_lsvi_pas %>%
     layer = "foresttypes_cellcalendar_lsvi_pas",
     delete_layer = TRUE
   )
+domains %>%
+  write_sf(
+    gpkg_path,
+    layer = "sac_custom_measures_pas",
+    delete_layer = TRUE
+  )
 ```
 
 Inspecting the file layers.
@@ -1100,7 +1149,7 @@ st_layers(gpkg_path)
 
 ## Appendix: used environment {-}
 
-### Platform
+### Platform {-}
 
 ```{r session-info, results = "asis", echo=FALSE}
 si <- sessioninfo::session_info()
@@ -1117,14 +1166,13 @@ sprintf("- **%s**: %s\n", names(p), p) %>%
   cat(sep = "")
 ```
 
-### R packages
+### R packages {-}
 
 ```{r results = "asis", echo=FALSE}
+#| label: tbl-sessioninfo
+#| tbl-cap: "Loaded R packages"
 si$packages %>%
   as_tibble() %>%
   select(package, loadedversion, date, source) %>%
-  pander::pandoc.table(
-    caption = "(\\#tab:sessioninfo)Loaded R packages",
-    split.table = Inf
-  )
+  pander::pandoc.table(split.table = Inf)
 ```
