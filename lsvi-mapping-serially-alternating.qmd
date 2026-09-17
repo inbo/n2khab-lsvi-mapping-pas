@@ -602,7 +602,7 @@ Distribution of cells over panels:
 table(cells_sacsubset_panel$panel_cell)
 ```
 
-We have calculated subcell membership of subpanels in the past and saved it on disk.
+We have calculated subpanel membership of subcells in the past and saved it on disk.
 We recalculate the subpanel membership (and optionally rewrite it) to test for equality with the version on disk.
 
 ```{r}
