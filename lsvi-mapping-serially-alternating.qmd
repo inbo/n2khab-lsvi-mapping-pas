@@ -28,7 +28,8 @@ format:
 
 _Note: the source code of this document is available in a [GitHub repository](https://github.com/inbo/n2khab-lsvi-mapping-pas)._
 
-```{r setup, message = FALSE}
+```{r setup, message = FALSE, output = FALSE}
+renv::restore()
 options(scipen = 999)
 conflictRules("git2rdata", exclude = c("pull", "meta"))
 conflictRules("janitor", exclude = c("crosstab", "chisq.test", "fisher.test"))
