@@ -62,7 +62,8 @@ references:
     -
       year: 2019
       month: 5
-  publisher: Zenodo
+  publisher: Research Institute for Nature and Forest (INBO)
+  source: Zenodo
   title: GRTS master sample for habitat monitoring in Flanders
   type: dataset
   URL: https://doi.org/10.5281/zenodo.2682323
@@ -86,7 +87,7 @@ references:
       month: 7
       day: 29
   language: en
-  publisher: Zenodo
+  publisher: Research Institute for Nature and Forest (INBO)
   source: Zenodo
   title: 'GRTSmh_diffres: the raster data source GRTSmaster_habitats converted to 9 hierarchical cell address levels at the corresponding lower resolution'
   title-short: GRTSmh_diffres
