@@ -26,6 +26,8 @@ format:
     toc-expand: true
 ---
 
+_Note: the source code of this document is available in a [GitHub repository](https://github.com/inbo/n2khab-lsvi-mapping-pas)._
+
 ```{r setup, message = FALSE}
 options(scipen = 999)
 conflictRules("git2rdata", exclude = c("pull", "meta"))
@@ -75,8 +77,6 @@ our_scroll_kbl <- function(df, width = NULL, height = NULL) {
     scroll_box(width = width, height = height)
 }
 ```
-
-_Note: the source code of this document is available in a [GitHub repository](https://github.com/inbo/n2khab-lsvi-mapping-pas)._
 
 ## Introduction
 
