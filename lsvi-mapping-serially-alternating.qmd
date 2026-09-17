@@ -1120,11 +1120,10 @@ sprintf("- **%s**: %s\n", names(p), p) %>%
 ### R packages
 
 ```{r results = "asis", echo=FALSE}
+#| label: tbl-sessioninfo
+#| tbl-cap: "Loaded R packages"
 si$packages %>%
   as_tibble() %>%
   select(package, loadedversion, date, source) %>%
-  pander::pandoc.table(
-    caption = "(\\#tab:sessioninfo)Loaded R packages",
-    split.table = Inf
-  )
+  pander::pandoc.table(split.table = Inf)
 ```
