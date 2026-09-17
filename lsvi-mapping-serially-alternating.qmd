@@ -1100,7 +1100,7 @@ st_layers(gpkg_path)
 
 ## Appendix: used environment {-}
 
-### Platform
+### Platform {-}
 
 ```{r session-info, results = "asis", echo=FALSE}
 si <- sessioninfo::session_info()
@@ -1117,7 +1117,7 @@ sprintf("- **%s**: %s\n", names(p), p) %>%
   cat(sep = "")
 ```
 
-### R packages
+### R packages {-}
 
 ```{r results = "asis", echo=FALSE}
 #| label: tbl-sessioninfo
