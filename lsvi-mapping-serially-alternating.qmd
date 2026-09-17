@@ -627,6 +627,7 @@ Visually inspect panel membership of cells in relation to (current) cumulative p
 cells_sacsubset_panel %>% 
   add_cell_lsvi_area() %>% 
   mutate(
+    panel_cell = factor(panel_cell),
     cumulative_polygon_area = cumsum(lsvi_area),
     cell_id = row_number(),
     .by = domain
@@ -634,10 +635,12 @@ cells_sacsubset_panel %>%
   ggplot(aes(
     x = cell_id,
     y = cumulative_polygon_area,
-    colour = factor(panel_cell)
+    colour = panel_cell
   )) +
   geom_point() +
-  facet_wrap(~domain, scales = "free")
+  facet_wrap(~domain, scales = "free") +
+  theme(legend.position = "bottom") +
+  guides(colour = guide_legend(nrow = 1))
 ```
 
 Distribution of cells over panels:
