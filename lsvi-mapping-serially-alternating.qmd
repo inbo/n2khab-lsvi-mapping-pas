@@ -114,7 +114,7 @@ This means that every year another panel (set of locations) is measured; the cyc
 - Polygons must be grouped as (large enough) spatial clusters to achieve better fieldwork efficiency.
 However to limit confounding between space (year) and time (location), the spatial clusters of each panel (year) should be:
   - well spread within and between the domains, meaning that they must not be too large;
-  - selected randomly so that a single panel or a smaller set of panels can already be used for estimation according to a (staged) cluster random sampling design.
+  - selected randomly so that a single panel or a smaller set of panels can already be used for estimation according to a (stratified) cluster random sampling design.
   
   So a balance must be found between fieldwork efficiency and spread.
 - The yearly surface area to be measured should (preferably) be similar between years.
@@ -124,7 +124,7 @@ However to limit confounding between space (year) and time (location), the spati
 
 #### Hierarchical GRTS raster cells for polygon clustering
 
-We need a spatial clustering method that also allows to randomly select well-spread clusters per panel, with the clusters being spatially aligned between forest polygons and polygons with open types.
+We need a spatial clustering method that allows to randomly select well-spread clusters per panel, with the clusters being spatially aligned between forest polygons and polygons with open types.
 Therefore we choose relatively large raster cells to group polygons (cell assignment of a polygon being based on polygon centroid) and use GRTS addresses of these raster cells to assign cells (i.e. the polygons belonging to them) to panels.
 From here on, we use the term 'cell' to refer to the object that defines a polygon cluster, since the cell is the technical implementation of the clustering.
 
@@ -144,9 +144,9 @@ Cells are assigned to panels based on a domain-specific partitioning of the cell
 A partitioning is chosen that tries to achieve an equal number of cells per panel.
 
 Cells contain 1 to 4 subcells: less than 4 subcells may occur on the domain boundaries, i.e. as a consequence of the intersection.
-To spatially align panel memberships with subpanel memberships, the subcells of a cell are randomly distributed among the two subpanels of the cell's panel, making use of the subcells' GRTS addresses and applying a constraint of maximum 1 subcell difference, i.e. equal partitioning is used if there are 2 or 4 subcells.
+To spatially align panel memberships with subpanel memberships, the subcells of a cell are randomly distributed among the two subpanels of the cell's panel, making use of the subcells' GRTS addresses and applying a constraint of maximum 1 subcell difference for this division, i.e. equal partitioning is used if there are 2 or 4 subcells.
 
-By directly assigning cells to panels and subcells to subpanels and by storing these panel memberships, we obtain a method of clustering polygons that remains stable over time.
+By directly assigning cells to panels and subcells to subpanels and by storing these panel memberships, we obtain a method of clustering polygons that remains applicable over time.
 This is because the (sub)cells cover the entire domains, so that they remain useful regardless of changes in habitat polygons over time.
 Only if the set of domains is expanded or shrinked, the panel memberships of (sub)cells must be updated (expanded or shrinked).
 However the panel memberships within a domain will remain stable as long as the domain geometry is stable (which is expected).
@@ -160,7 +160,7 @@ We will use the latest version of the `habitatmap_terr` data source -- either th
 - calculate total surface areas for LSVI measurements, by domain, year and polygon category.
 
 In fact, using a static data source for these purposes will always run behind the current state of the dynamic process of field mapping, where new polygons are created and existing ones may change or disappear.
-This also means that the (sub)cell panel memberships are actually more useful than polygon panel memberships, since they are applicable at any time to the determine (sub)panel membership of a polygon.
+This also means that the (sub)cell panel memberships are actually more useful than polygon panel memberships, since they are applicable at any time to determine (sub)panel membership of a polygon.
 It depends on the polygon category (does it contain an open type?) **whether the cells or the subcells must be used to determine the polygon's (sub)panel**.
 
 #### Revisit design
@@ -179,7 +179,7 @@ Several aspects of the resulting calendars are explored to allow further evaluat
 - temporal evenness of total yearly polygon area, also per polygon category.
 
 Apart from these results, the spatial layers have also been explored in a GIS environment, especially to assess the trade-off between cell size, spatial spread and fieldwork feasability.
-Changes and motivations for change are documented in git commit messages.
+Changes are motivated in git commit messages.
 
 The most desirable outcome is a combination of overall temporal evenness of efforts, sufficiently small polygon clusters (allowing better spatial spread per year) and an acceptable fieldwork feasability.
 
@@ -187,7 +187,7 @@ The most desirable outcome is a combination of overall temporal evenness of effo
 
 While (design-based) inference methods are not part of this document, they are tied to the design so it's useful to already list different aspects of inference.
 
-The hierarchy of years, spatially well-spread clusters and polygons leads to a compound spatiotemporal sampling design [@de_gruijter_sampling_2006] that has _cluster sampling_ at its center.
+The hierarchy of years, spatially well-spread clusters and polygons leads to a compound spatiotemporal sampling design that has _cluster sampling_ at its center [@cochran_sampling_1977; @de_gruijter_sampling_2006].
 The clusters are all polygons (of the same category) that belong to the same cell or subcell (cell/subcell depends on the polygon category), and they are sampled using _GRTS_.
 
 It's spatiotemporal _sampling_, not a census, even while all locations are visited after 6 or 12 years.
@@ -197,23 +197,25 @@ Inference about **status** (design-based) refers to a single cycle or a part the
 Since we don't _sample_ years but take a spatial sample _every_ year, we have temporal stratification by year.
 So we end up with a **stratified GRTS-cluster sampling design**.
 
-Inference about **trend** can involve estimation of change (difference) between two consecutive cycles, which can be done design-based, or the estimation of a  model trend, which can be done in a hybrid model- and design-based approach.
+Inference about **trend** can involve estimation of change (difference) between two consecutive cycles, which can be done design-based, or the estimation of a  model trend, which can be done in a hybrid model- & design-based approach.
 
-- differences between two cycles: this needs two cycles or at least two repetitions of a year subset of the cycles, which is possible before the second cycle is completed.
+- difference between two cycles: this needs two cycles or at least two repetitions of a year subset of the cycles, which is possible already before the second cycle is completed.
 This is best done (more efficient, more power) by spatially aggregating the location-wise (temporal) differences between two cycles.
-The involved year duets can serve as strata.
-- modelled trend: this is most robust after three cycles, as the estimation can then be done per location (which can be a location-specific trend prediction by a spatiotemporal model that uses all locations) followed by spatial aggregation of the local trend parameters.
-It is also possible (but much less powerful) to fit a trend after two cycles (and even a bit less, for subsets of cycle years) by modelling the trend of the yearly (spatially aggregated) status.
+The involved pairs of years can serve as strata.
+- modelled trend: this is most robust after three cycles, as the estimation can then be done per location (e.g. a location-specific trend prediction by a spatiotemporal model that uses all locations) followed by design-based spatial aggregation of the local trend parameters.
+It is also possible (but much less powerful) to fit a trend after a shorter time by modelling the trend of the yearly (spatially aggregated) status.
 
 In both cases, the location-specific approaches come down to applying the (design-based) inference for the GRTS-cluster design after temporal aggregation (design- or model-based) at location level.
 
 Inference will be done for each habitat main type or subtype; perhaps also for some grouping of habitat (sub)types.
 
-Even though type units are not directly sampled, only polygons are, and even though a polygon often contains more than one habitat type, the cell-based cluster approach can be regarded as being insensitive to this, because all habitat polygons in a cluster are sampled anyway.
+Even though type units are not directly sampled -- only polygons are -- and even though a polygon often contains more than one habitat type, the cell-based cluster approach can be regarded as being insensitive to this, because all habitat polygons in a cluster are sampled anyway.
+For inference will want to take into account each polygon's surface area and the proportion covered by the habitat (phab) inside each polygon in order to define 'cluster size' (all units of a cluster), as expressed by the type's surface area in a cluster.
 
-Still, we must be aware that forest types occur both in forest-only polygons and in polygons with an open type.
+Further, we must be aware that forest types occur both in forest-only polygons and in polygons with an open type.
 For these types, appropriate weighting is needed to take into account that we assess them in forest-only polygons at half the speed as the polygons with open types, so forest-type measurements from the latter will are overrepresented in the data.
 
+The differences in cluster sizes are typically accounted for in inference for cluster random sampling [@cochran_sampling_1977].
 
 
 ## Settings and basic objects
