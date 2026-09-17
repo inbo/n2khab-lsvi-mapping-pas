@@ -1081,6 +1081,12 @@ foresttypes_cellcalendar_lsvi_pas %>%
     layer = "foresttypes_cellcalendar_lsvi_pas",
     delete_layer = TRUE
   )
+domains %>%
+  write_sf(
+    gpkg_path,
+    layer = "sac_custom_measures_pas",
+    delete_layer = TRUE
+  )
 ```
 
 Inspecting the file layers.
