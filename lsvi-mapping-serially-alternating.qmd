@@ -778,7 +778,7 @@ opentypes_cellcalendar_lsvi_pas
 ```
 
 ```{r}
-foresttypes_cellcalendar_lsvi_pas <-
+foresttypes_subcellcalendar_lsvi_pas <-
   subcells_sacsubset %>% 
   select(-cell_address) %>% 
   inner_join(
@@ -800,7 +800,7 @@ Inspecting geospatial form of the subcell calendar (forest types):
 ```{r}
 #| paged.print: false
 #| code-fold: show
-foresttypes_cellcalendar_lsvi_pas
+foresttypes_subcellcalendar_lsvi_pas
 ```
 
 ```{r}
@@ -1118,10 +1118,10 @@ opentypes_cellcalendar_lsvi_pas %>%
     layer = "opentypes_cellcalendar_lsvi_pas",
     delete_layer = TRUE
   )
-foresttypes_cellcalendar_lsvi_pas %>%
+foresttypes_subcellcalendar_lsvi_pas %>%
   write_sf(
     gpkg_path,
-    layer = "foresttypes_cellcalendar_lsvi_pas",
+    layer = "foresttypes_subcellcalendar_lsvi_pas",
     delete_layer = TRUE
   )
 domains %>%
