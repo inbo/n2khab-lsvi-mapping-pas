@@ -197,6 +197,12 @@ The clusters are all polygons (of the same category) that belong to the same cel
 It's spatiotemporal _sampling_, not a census, even while all locations are visited after 6 or 12 years.
 A census in the spatiotemporal sense means visiting all locations every year (pure panel design), while in this case every year only a sample of locations is measured.
 
+We can regard the temporal population as a finite population of discrete units, notably years.
+This is because the LSVI measurement is typically regarded to represent the year in which it has been made.
+Still, the measurement itself needs to happen during the optimal months of that year, typically the type's flowering season, since most LSVI indicators depend on vegetation characteristics.
+How vegetation and species appear in a year influences LSVI indicators and depends on the weather regime during the year, on the local environmental state, on nature management regimes and on other natural and anthropogenic processes.
+These factors are all subject to change from year to year.
+
 Inference about **status** (design-based) refers to a single cycle or a part thereof (subset of years).
 Since we don't _sample_ years but take a spatial sample _every_ year, we have temporal stratification by year.
 So we end up with a **stratified GRTS-cluster sampling design**.
@@ -874,7 +880,7 @@ opentypes_cellcalendar_lsvi_pas
 ```
 
 ```{r}
-foresttypes_cellcalendar_lsvi_pas <-
+foresttypes_subcellcalendar_lsvi_pas <-
   subcells_sacsubset %>% 
   select(-cell_address) %>% 
   inner_join(
@@ -896,7 +902,7 @@ Inspecting geospatial form of the subcell calendar (forest types):
 ```{r}
 #| paged.print: false
 #| code-fold: show
-foresttypes_cellcalendar_lsvi_pas
+foresttypes_subcellcalendar_lsvi_pas
 ```
 
 ```{r}
@@ -1214,10 +1220,10 @@ opentypes_cellcalendar_lsvi_pas %>%
     layer = "opentypes_cellcalendar_lsvi_pas",
     delete_layer = TRUE
   )
-foresttypes_cellcalendar_lsvi_pas %>%
+foresttypes_subcellcalendar_lsvi_pas %>%
   write_sf(
     gpkg_path,
-    layer = "foresttypes_cellcalendar_lsvi_pas",
+    layer = "foresttypes_subcellcalendar_lsvi_pas",
     delete_layer = TRUE
   )
 domains %>%
